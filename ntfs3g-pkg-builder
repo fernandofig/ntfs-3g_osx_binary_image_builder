@@ -1,0 +1,420 @@
+#!/bin/bash
+
+modify_gettext_portbuild() {
+	echo "Modifying gettext portfile for custom build:"
+
+	echo -n " - Creating working copy... "
+	cp $PORTSDIR/devel/gettext/Portfile $TMPDIR/Portfile.gettext
+	cp $TMPDIR/Portfile.gettext $TMPDIR/Portfile.gettext.orig
+	echo "Ok."
+
+	echo -n " - Adding forced /usr/local prefix... "
+	sed -i '' '/configure.cppflags/i\
+prefix                  /usr/local
+' $TMPDIR/Portfile.gettext
+	echo "Ok."
+
+	echo -n " - Adding parameters for gettext to be compiled against builtin OSX libs... "
+	sed -i '' '/--without-cvs/i\
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --with-libexpat-prefix=/usr \\
+' $TMPDIR/Portfile.gettext
+
+	sed -i '' '/--without-cvs/i\
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --with-libncurses-prefix=/usr \\
+' $TMPDIR/Portfile.gettext
+
+	sed -i '' '/--without-cvs/i\
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --with-libiconv-prefix=/usr \\
+' $TMPDIR/Portfile.gettext
+	echo "Ok."
+
+	echo -n " - Rerouting dependency on the MacPorts libs to OSX builtins... "
+	sed -i '' '/port:libiconv/d' $TMPDIR/Portfile.gettext
+	sed -i '' '/lib\/libiconv.dylib/d' $TMPDIR/Portfile.gettext
+
+	sed -i '' '/port:ncurses/d' $TMPDIR/Portfile.gettext
+	sed -i '' '/lib\/libncurses.dylib/d' $TMPDIR/Portfile.gettext
+
+	sed -i '' '/port:expat/d' $TMPDIR/Portfile.gettext
+	sed -i '' '/lib\/libexpat.dylib/d' $TMPDIR/Portfile.gettext
+
+	#sed -i '' 's/^[\ \t]*port:ncurses/depends_lib\ \ \ \ \ \ \ \ \ \ \ \ \ port:ncurses/' $TMPDIR/Portfile.gettext
+	#sed -i '' 's/^[\ \t]*lib\/libncurses.dylib/archcheck.files\ \ \ \ \ \ \ \ \ lib\/libncurses.dylib/' $TMPDIR/Portfile.gettext
+
+	cat $TMPDIR/Portfile.gettext > $PORTSDIR/devel/gettext/Portfile
+
+	echo "Ok."
+}
+
+build_gettext() {
+	echo "Building custom gettext for ntfs-3g:"
+
+	echo -n " - Compiling... "
+	port -q destroot gettext
+	if [ $? -ne 0 ]; then
+		echo "Error!"
+		echo " * Error compiling gettext. Aborting..."
+		exit 1;
+	fi
+	echo "Ok."
+	
+	echo -n " - Creating install package for custom gettext... "
+	port -q pkg gettext > /dev/null 2>&1
+	echo "Ok."
+
+	echo -n " - Copying gettext install package to work dir... "
+	cp -a $PORTSDIR/devel/gettext/work/gettext-*.pkg $TMPDIR/pkgs/
+	echo "Ok."
+
+	echo -n " - Resetting gettext port to original state... "
+	cat $TMPDIR/Portfile.gettext.orig > $PORTSDIR/devel/gettext/Portfile
+	rm $TMPDIR/Portfile.gettext*
+	port -q clean gettext
+	echo "Ok."
+}
+
+strip_gettext() {
+	echo -n "Removing binaries and libraries not used by NTFS-3G from gettext install... "
+	GETTEXTPKG=`basename $TMPDIR/pkgs/gettext-*.pkg`
+	cd $TMPDIR/pkgroot
+	pax -r -pe -zf $TMPDIR/pkgs/$GETTEXTPKG/Contents/Archive.pax.gz
+	rm -rf $TMPDIR/pkgroot/usr/local/bin
+	rm -rf $TMPDIR/pkgroot/usr/local/share
+	rm -rf $TMPDIR/pkgroot/usr/local/include/autosprintf.h $TMPDIR/pkgroot/usr/local/include/gettext-po.h
+	rm -rf $TMPDIR/pkgroot/usr/local/lib/gettext $TMPDIR/pkgroot/usr/local/lib/libasprintf* $TMPDIR/pkgroot/usr/local/lib/libgettext*
+	echo "Ok."
+}
+
+modify_ntfs3g_portbuild() {
+	echo "Modifying ntfs-3g portfile for custom build:"
+
+        echo -n " - Creating working copy... "
+        cp $PORTSDIR/fuse/ntfs-3g/Portfile $TMPDIR/Portfile.ntfs-3g
+        cp $TMPDIR/Portfile.ntfs-3g $TMPDIR/Portfile.ntfs-3g.orig
+        echo "Ok."
+
+        echo -n " - Adding forced /usr/local prefix... "
+        sed -i '' '/configure.args/i\
+prefix                  /usr/local
+' $TMPDIR/Portfile.ntfs-3g
+	sed -i '' '/patch-configure.diff/d' $TMPDIR/Portfile.ntfs-3g
+	cat $TMPDIR/Portfile.ntfs-3g > $PORTSDIR/fuse/ntfs-3g/Portfile
+        echo "Ok."
+}
+
+build_ntfs3g() {
+        echo "Building ntfs-3g:"
+
+	echo -n " - Staging libintl into /usr/local so ntfs-3g can be compiled... "
+	cp -a $TMPDIR/pkgroot/usr/local/* /usr/local
+	echo "Ok."
+
+        echo -n " - Compiling... "
+        port -q destroot ntfs-3g > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+                echo "Error!"
+                echo " * Error compiling ntfs-3g. Aborting..."
+                exit 1;
+        fi
+        echo "Ok."
+
+        echo -n " - Creating install package for ntfs-3g... "
+        port -q pkg ntfs-3g > /dev/null 2>&1
+        echo "Ok."
+
+        echo -n " - Copying ntfs-3g install package to work dir... "
+        cp -a $PORTSDIR/fuse/ntfs-3g/work/ntfs-3g*.pkg $TMPDIR/pkgs/
+        echo "Ok."
+
+	echo -n " - Removing staged libintl from /usr/local... "
+	libIntlFiles=`find $TMPDIR/pkgroot -not -type d | sed "s/${TMPDIR//\//\\/}\/pkgroot//"`
+	for liarq in $libIntlFiles ; do
+		rm -rf $liarq
+	done
+	echo "Ok."
+
+        echo -n " - Resetting ntfs-3g port to original state... "
+        cat $TMPDIR/Portfile.ntfs-3g.orig > $PORTSDIR/fuse/ntfs-3g/Portfile
+        rm $TMPDIR/Portfile.ntfs-3g*
+        port -q clean ntfs-3g
+        echo "Ok."
+}
+
+merge_libintl_to_ntfs3g() {
+	echo -n "Merging libintl to NTFS-3G dist files... "
+	NTFSTGPKG=`basename $TMPDIR/pkgs/ntfs-3g-*.pkg`
+        cd $TMPDIR/pkgroot
+        pax -r -pe -zf $TMPDIR/pkgs/$NTFSTGPKG/Contents/Archive.pax.gz
+	chown -R 0:0 $TMPDIR/pkgroot/usr
+	echo "Ok."
+}
+
+add_mountntfs_script() {
+	mkdir -p $TMPDIR/pkgroot/sbin
+	(cat <<'EOF'
+#!/bin/bash
+
+VOLUME_NAME="${@:$#}"
+VOLUME_NAME=${VOLUME_NAME#/Volumes/}
+USER_ID=501
+GROUP_ID=20
+TIMEOUT=20
+
+if [ `/usr/bin/stat -f "%u" /dev/console` -eq 0 ]; then
+        USERNAME=`/usr/bin/defaults read /library/preferences/com.apple.loginwindow | /usr/bin/grep autoLoginUser | /usr/bin/awk '{ print $3 }' | /usr/bin/sed 's/;//'`
+        if [ "$USERNAME" = "" ]; then
+                until [ `stat -f "%u" /dev/console` -ne 0 ] || [ $TIMEOUT -eq 0 ]; do
+                        sleep 1
+                        let TIMEOUT--
+                done
+                if [ $TIMEOUT -ne 0 ]; then
+                        USER_ID=`/usr/bin/stat -f "%u" /dev/console`
+                        GROUP_ID=`/usr/bin/stat -f "%g" /dev/console`
+                fi
+        else
+                USER_ID=`/usr/bin/id -u $USERNAME`
+                GROUP_ID=`/usr/bin/id -g $USERNAME`
+        fi
+else
+        USER_ID=`/usr/bin/stat -f "%u" /dev/console`
+        GROUP_ID=`/usr/bin/stat -f "%g" /dev/console`
+fi
+
+/usr/local/bin/ntfs-3g \
+        -o volname="${VOLUME_NAME}" \
+        -o local \
+        -o negative_vncache \
+        -o auto_xattr \
+        -o auto_cache \
+        -o noatime \
+        -o windows_names \
+        -o user_xattr \
+        -o inherit \
+        -o uid=$USER_ID \
+        -o gid=$GROUP_ID \
+        -o allow_other \
+	-o iosize=33554432 \
+        "$@" &> /var/log/ntfsmnt.log
+
+exit $?;
+
+EOF
+) > $TMPDIR/pkgroot/sbin/mount_ntfs-3g
+	chmod -R 0755 $TMPDIR/pkgroot/sbin
+	chown -R 0:0 $TMPDIR/pkgroot/sbin
+	xattr -w -x com.apple.FinderInfo "00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00" $TMPDIR/pkgroot/sbin
+}
+
+rebuild_ntfs3g_installpackage() {
+	echo -n "Rebuilding NTFS-3G install package... "
+	cd $TMPDIR/pkgroot
+	mkbom $TMPDIR/pkgroot/ $TMPDIR/Archive.bom
+	pax -w -zf $TMPDIR/Archive.pax.gz .
+	cat $TMPDIR/Archive.pax.gz > $TMPDIR/pkgs/$NTFSTGPKG/Contents/Archive.pax.gz
+	cat $TMPDIR/Archive.bom > $TMPDIR/pkgs/$NTFSTGPKG/Contents/Archive.bom
+	rm -rf $TMPDIR/Archive.*
+	echo "Ok."
+}
+
+add_uninstall_script() {
+	echo -n "Adding uninstall script... "
+	UNS=$TMPDIR/Uninstall
+	ntfsdistfiles=`find $TMPDIR/pkgroot -not -type d | sed "s/${TMPDIR//\//\\/}\/pkgroot//"`
+	(cat <<'EOF'
+#!/bin/bash
+
+# There's no builtin way in OSX to identify whether a Fuse filesystem is NTFS or not, so, unless NTFS-3G
+# really is installed (hence, ntfs-3g.probe would also be) we unmount all Fuse4x filesystems... :P
+
+sudo -p "Please enter your password to uninstall NTFS-3G: " -s -- '
+
+echo -n "Unmounting NTFS filesystems... "
+nprobe=`which ntfs-3g.probe`
+fusemountlist=`mount | grep fuse4x | awk "{ print \$1 }"`
+ntfsmountlist=`mount | grep ntfs | awk "{ print \$1 }"`
+for fm in $fusemountlist; do
+	[ "$nprobe" = "" ] && true || $nprobe --readonly $fm > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		diskutil quiet umount force $fm
+		if [ $? -ne 0 ]; then
+			echo "Couldnt unmount NTFS filesystems. Please unmount them manually and try again. Aborting..."
+			read -n1
+			exit 1;
+		fi
+	fi
+done
+for fm in $ntfsmountlist; do
+	diskutil quiet umount force $fm > /dev/null 2>&1
+done
+echo "Ok."
+sleep 1
+
+echo -n "Switching default NTFS handler to * OSX NATIVE * ... "
+if [ -h /sbin/mount_ntfs ] && [ -f /sbin/mount_ntfs.orig ]; then
+	rm -f /sbin/mount_ntfs
+	mv /sbin/mount_ntfs.orig /sbin/mount_ntfs
+fi
+echo "Ok."
+
+echo "Uninstalling NTFS-3G... "
+EOF
+) > $UNS
+
+	for ndfile in $ntfsdistfiles; do
+		echo "rm -vf $ndfile" >> $UNS
+	done
+
+	(cat <<'EOF'
+rm -rvf /usr/local/include/ntfs-3g
+rm -rvf /usr/local/share/doc/ntfs-3g
+#pkgutil --forget org.macports.ntfs-3g
+rm -rf /Library/Receipts/ntfs-3g-*.pkg
+'
+
+read -p "Uninstall finished. Press any key to exit..." -n1
+
+EOF
+) >> $UNS
+
+	chmod 0755 $UNS
+	mv $UNS $TMPDIR/pkgs/
+	echo "Ok."
+}
+
+add_switcher_script() {
+        echo -n "Adding switcher script... "
+        SS=$TMPDIR/Switch
+        (cat <<'EOF'
+#!/bin/bash
+
+echo "This procedure requires administrative privileges."
+sudo -p "Please enter your password to continue: " -s -- '
+
+nprobe=`which ntfs-3g.probe`
+ntfsmounts=""
+
+umount_ntfs_volumes() {
+	echo -n " - Unmounting NTFS filesystems... "
+	fusemountlist=`mount | grep fuse4x | awk "{ print \$1 }"`
+	ntfsmountlist=`mount | grep ntfs | awk "{ print \$1 }"`
+	for fm in $fusemountlist; do
+		$nprobe --readonly $fm > /dev/null 2>&1
+		if [ $? -eq 0 ]; then
+			diskutil quiet umount force $fm
+			if [ $? -ne 0 ]; then
+				echo "Couldnt unmount NTFS filesystems. Please unmount them manually and try again. Aborting..."
+				read -n1
+				exit 1;
+			fi
+			ntfsmounts="$fm $ntfsmounts"
+		fi
+	done
+	for fm in $ntfsmountlist; do
+		diskutil quiet umount force $fm > /dev/null 2>&1
+		ntfsmounts="$fm $ntfsmounts"
+	done
+	echo "Ok."
+}
+
+remount_ntfs_volumes() {
+	echo -n " - Remounting NTFS filesystems... "
+	for nm in $ntfsmounts; do
+		diskutil quiet mount $nm
+	done
+	echo "Ok."
+}
+
+if [ "`which ntfs-3g`" = "" ] || [ "$nprobe" = "" ]; then
+	echo "NTFS-3G doesnt seem to be installed!"
+	echo "Aborting... Press any key to exit."
+	read -n1
+	exit 1;
+fi
+
+if [ -h /sbin/mount_ntfs ]; then
+	read -p "Mounting NTFS volumes with NTFS-3G by default seems to be ENABLED. Do you want to DISABLE it? " -n1 switchAnswer
+	echo
+	if [ "$switchAnswer" = "y" ] || [ "$switchAnswer" = "Y" ]; then
+		umount_ntfs_volumes
+		echo -n " - Switching default NTFS handler to * OSX NATIVE * ... "
+		if [ -f /sbin/mount_ntfs.orig ]; then
+			rm -f /sbin/mount_ntfs
+			mv /sbin/mount_ntfs.orig /sbin/mount_ntfs
+		fi
+		echo "Ok."
+		remount_ntfs_volumes
+	else
+		echo "Aborting... "
+	fi
+else
+	read -p "Mounting NTFS volumes with NTFS-3G by default seems to be DISABLED. Do you want to ENABLE it? " -n1 switchAnswer
+	echo
+	if [ "$switchAnswer" = "y" ] || [ "$switchAnswer" = "Y" ]; then
+		umount_ntfs_volumes
+		echo -n " - Switching default NTFS handler to * NTFS-3G * ... "
+		[ -f /sbin/mount_ntfs.orig ] || mv /sbin/mount_ntfs /sbin/mount_ntfs.orig;
+		ln -sf /sbin/mount_ntfs-3g /sbin/mount_ntfs
+		echo "Ok."
+		remount_ntfs_volumes
+	else
+		echo "Aborting... "
+	fi
+fi
+
+echo
+read -p "Press any key to exit... " -n1
+'
+
+EOF
+) >> $SS
+
+        chmod 0755 $SS
+        mv $SS $TMPDIR/pkgs/
+        echo "Ok."
+}
+
+create_ntfs3g_dmg() {
+	mkdir $TMPDIR/dmg
+	chmod 0755 $TMPDIR/pkgs/*
+	cp -a $TMPDIR/pkgs/ntfs-3g-*.pkg $TMPDIR/dmg
+	cp -a $TMPDIR/pkgs/Uninstall $TMPDIR/dmg
+	cp -a $TMPDIR/pkgs/Switch $TMPDIR/dmg
+	chown -R $UIDDMG:$GIDDMG $TMPDIR/dmg
+	echo -n "Creating DMG image with NTFS-3G install package and uninstaller... "
+	hdiutil create -fs HFS+ -srcfolder $TMPDIR/dmg/ -copyuid $UIDDMG -anyowners -ov -quiet -volname "NTFS-3G Install" $OLDIR/NTFS-3G.dmg
+	rm -rf $TMPDIR/dmg
+	echo "Ok."
+}
+
+if [ "$UID" -ne 0 ]; then
+	echo "You should be root!"
+	exit 1;
+fi
+
+OLDIR=`pwd`
+UIDDMG=501
+GIDDMG=20
+TMPDIR=/tmp/ntfs-3g-rebuild
+PORTSDIR=/opt/local/var/macports/sources/rsync.macports.org/release/tarballs/ports
+mkdir -p $TMPDIR/pkgroot
+mkdir -p $TMPDIR/pkgs
+
+#modify_gettext_portbuild
+#build_gettext
+#strip_gettext
+
+#modify_ntfs3g_portbuild
+#build_ntfs3g
+#merge_libintl_to_ntfs3g
+#add_mountntfs_script
+#rebuild_ntfs3g_installpackage
+add_uninstall_script
+add_switcher_script
+create_ntfs3g_dmg
+
+cd $OLDIR
+#rm -rf $TMPDIR
+
+echo "Finished!"
+
+exit 0;

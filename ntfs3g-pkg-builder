@@ -399,21 +399,21 @@ PORTSDIR=/opt/local/var/macports/sources/rsync.macports.org/release/tarballs/por
 mkdir -p $TMPDIR/pkgroot
 mkdir -p $TMPDIR/pkgs
 
-#modify_gettext_portbuild
-#build_gettext
-#strip_gettext
+modify_gettext_portbuild
+build_gettext
+strip_gettext
 
-#modify_ntfs3g_portbuild
-#build_ntfs3g
-#merge_libintl_to_ntfs3g
-#add_mountntfs_script
-#rebuild_ntfs3g_installpackage
+modify_ntfs3g_portbuild
+build_ntfs3g
+merge_libintl_to_ntfs3g
+add_mountntfs_script
+rebuild_ntfs3g_installpackage
 add_uninstall_script
 add_switcher_script
 create_ntfs3g_dmg
 
 cd $OLDIR
-#rm -rf $TMPDIR
+rm -rf $TMPDIR
 
 echo "Finished!"
 

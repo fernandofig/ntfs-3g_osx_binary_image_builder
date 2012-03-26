@@ -252,7 +252,13 @@ sleep 1
 echo -n "Switching default NTFS handler to * OSX NATIVE * ... "
 if [ -h /sbin/mount_ntfs ] && [ -f /sbin/mount_ntfs.orig ]; then
 	rm -f /sbin/mount_ntfs
-	mv /sbin/mount_ntfs.orig /sbin/mount_ntfs
+	if [ -e /sbin/mount_ntfs.orig ] && [ `file /sbin/mount_ntfs.orig | head -n1 | grep -c Mach-O` -eq 1 ]; then
+                mv /sbin/mount_ntfs.orig /sbin/mount_ntfs
+		rm -f /sbin/mount_ntfs.osx-dist
+        elif [ -e /sbin/mount_ntfs.osx-dist ]; then
+		mv /sbin/mount_ntfs.osx-dist /sbin/mount_ntfs
+		rm -f /sbin/mount_ntfs.orig
+	fi
 fi
 echo "Ok."
 
@@ -329,6 +335,14 @@ if [ "`which ntfs-3g`" = "" ] || [ "$nprobe" = "" ]; then
 	echo "Aborting... Press any key to exit."
 	read -n1
 	exit 1;
+fi
+
+if [ ! -e /sbin/mount_ntfs.osx-dist ]; then
+	if [ `file /sbin/mount_ntfs | head -n1 | grep -c Mach-O` -eq 1 ]; then
+		cp -a /sbin/mount_ntfs /sbin/mount_ntfs.osx-dist
+	elif [ -e /sbin/mount_ntfs.orig ] && [ `file /sbin/mount_ntfs.orig | head -n1 | grep -c Mach-O` -eq 1 ]; then
+		cp -a /sbin/mount_ntfs.orig /sbin/mount_ntfs.osx-dist
+	fi
 fi
 
 if [ -h /sbin/mount_ntfs ]; then

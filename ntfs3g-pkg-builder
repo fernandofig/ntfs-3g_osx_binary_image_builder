@@ -88,43 +88,43 @@ strip_gettext() {
 modify_ntfs3g_portbuild() {
 	echo "Modifying ntfs-3g portfile for custom build:"
 
-        echo -n " - Creating working copy... "
-        cp $PORTSDIR/fuse/ntfs-3g/Portfile $TMPDIR/Portfile.ntfs-3g
-        cp $TMPDIR/Portfile.ntfs-3g $TMPDIR/Portfile.ntfs-3g.orig
-        echo "Ok."
+	echo -n " - Creating working copy... "
+	cp $PORTSDIR/fuse/ntfs-3g/Portfile $TMPDIR/Portfile.ntfs-3g
+	cp $TMPDIR/Portfile.ntfs-3g $TMPDIR/Portfile.ntfs-3g.orig
+	echo "Ok."
 
-        echo -n " - Adding forced /usr/local prefix... "
-        sed -i '' '/configure.args/i\
+	echo -n " - Adding forced /usr/local prefix... "
+	sed -i '' '/configure.args/i\
 prefix                  /usr/local
 ' $TMPDIR/Portfile.ntfs-3g
 	sed -i '' '/patch-configure.diff/d' $TMPDIR/Portfile.ntfs-3g
 	cat $TMPDIR/Portfile.ntfs-3g > $PORTSDIR/fuse/ntfs-3g/Portfile
-        echo "Ok."
+	echo "Ok."
 }
 
 build_ntfs3g() {
-        echo "Building ntfs-3g:"
+	echo "Building ntfs-3g:"
 
 	echo -n " - Staging libintl into /usr/local so ntfs-3g can be compiled... "
 	cp -a $TMPDIR/pkgroot/usr/local/* /usr/local
 	echo "Ok."
 
-        echo -n " - Compiling... "
-        port -q destroot ntfs-3g > /dev/null 2>&1
-        if [ $? -ne 0 ]; then
-                echo "Error!"
-                echo " * Error compiling ntfs-3g. Aborting..."
-                exit 1;
-        fi
-        echo "Ok."
+	echo -n " - Compiling... "
+	port -q destroot ntfs-3g > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		echo "Error!"
+		echo " * Error compiling ntfs-3g. Aborting..."
+		exit 1;
+	fi
+	echo "Ok."
 
-        echo -n " - Creating install package for ntfs-3g... "
-        port -q pkg ntfs-3g > /dev/null 2>&1
-        echo "Ok."
+	echo -n " - Creating install package for ntfs-3g... "
+	port -q pkg ntfs-3g > /dev/null 2>&1
+	echo "Ok."
 
-        echo -n " - Copying ntfs-3g install package to work dir... "
-        cp -a $PORTSDIR/fuse/ntfs-3g/work/ntfs-3g*.pkg $TMPDIR/pkgs/
-        echo "Ok."
+	echo -n " - Copying ntfs-3g install package to work dir... "
+	cp -a $PORTSDIR/fuse/ntfs-3g/work/ntfs-3g*.pkg $TMPDIR/pkgs/
+	echo "Ok."
 
 	echo -n " - Removing staged libintl from /usr/local... "
 	libIntlFiles=`find $TMPDIR/pkgroot -not -type d | sed "s/${TMPDIR//\//\\/}\/pkgroot//"`
@@ -133,18 +133,18 @@ build_ntfs3g() {
 	done
 	echo "Ok."
 
-        echo -n " - Resetting ntfs-3g port to original state... "
-        cat $TMPDIR/Portfile.ntfs-3g.orig > $PORTSDIR/fuse/ntfs-3g/Portfile
-        rm $TMPDIR/Portfile.ntfs-3g*
-        port -q clean ntfs-3g
-        echo "Ok."
+	echo -n " - Resetting ntfs-3g port to original state... "
+	cat $TMPDIR/Portfile.ntfs-3g.orig > $PORTSDIR/fuse/ntfs-3g/Portfile
+	rm $TMPDIR/Portfile.ntfs-3g*
+	port -q clean ntfs-3g
+	echo "Ok."
 }
 
 merge_libintl_to_ntfs3g() {
 	echo -n "Merging libintl to NTFS-3G dist files... "
 	NTFSTGPKG=`basename $TMPDIR/pkgs/ntfs-3g-*.pkg`
-        cd $TMPDIR/pkgroot
-        pax -r -pe -zf $TMPDIR/pkgs/$NTFSTGPKG/Contents/Archive.pax.gz
+	cd $TMPDIR/pkgroot
+	pax -r -pe -zf $TMPDIR/pkgs/$NTFSTGPKG/Contents/Archive.pax.gz
 	chown -R 0:0 $TMPDIR/pkgroot/usr
 	echo "Ok."
 }
@@ -224,43 +224,64 @@ add_uninstall_script() {
 #!/bin/bash
 
 # There's no builtin way in OSX to identify whether a Fuse filesystem is NTFS or not, so, unless NTFS-3G
-# really is installed (hence, ntfs-3g.probe would also be) we unmount all Fuse4x filesystems... :P
+# really is installed (hence, ntfs-3g.probe would also be) we unmount all Fuse4x/OSXFuse
+# filesystems... :P
 
 sudo -p "Please enter your password to uninstall NTFS-3G: " -s -- '
 
-echo -n "Unmounting NTFS filesystems... "
+out=/bin/echo
 nprobe=`which ntfs-3g.probe`
-fusemountlist=`mount | grep fuse4x | awk "{ print \$1 }"`
-ntfsmountlist=`mount | grep ntfs | awk "{ print \$1 }"`
+
+$out -n "Unmounting NTFS filesystems... "
+fusemountlist=`mount | egrep "fuse4x|osxfusefs" | awk "{ print \\$1 }"`
+ntfsmountlist=`mount | grep ntfs | awk "{ print \\$1 }"`
+ntfsmountpoints=`mount | egrep "fuse4x|osxfusefs|ntfs" | awk "{ print \\$3 }"`
 for fm in $fusemountlist; do
 	[ "$nprobe" = "" ] && true || $nprobe --readonly $fm > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
 		diskutil quiet umount force $fm
 		if [ $? -ne 0 ]; then
-			echo "Couldnt unmount NTFS filesystems. Please unmount them manually and try again. Aborting..."
+			$out "Couldnt unmount NTFS filesystems. Please unmount them manually and try again. Aborting..."
 			read -n1
 			exit 1;
 		fi
+		ntfsmounts="$fm $ntfsmounts"
 	fi
 done
 for fm in $ntfsmountlist; do
 	diskutil quiet umount force $fm > /dev/null 2>&1
+	ntfsmounts="$fm $ntfsmounts"
 done
-echo "Ok."
+$out "Ok."
+
+$out -n " - Removing mountpoints... "
+for fm in $ntfsmountpoints; do
+	$out -n "$fm, "
+	rm -rf $fm
+done
+$out "Ok."
 sleep 1
 
-echo -n "Switching default NTFS handler to * OSX NATIVE * ... "
-if [ -h /sbin/mount_ntfs ] && [ -f /sbin/mount_ntfs.orig ]; then
+if [ -h /sbin/mount_ntfs ]; then
+	ISNTFS3G=`readlink /sbin/mount_ntfs | grep -c "\-3g"`
+else
+	ISNTFS3G=0
+fi
+
+if [ $ISNTFS3G -eq 1 ]; then
+	$out -n "Switching default NTFS handler to * OSX NATIVE * ... "
 	rm -f /sbin/mount_ntfs
+
 	if [ -e /sbin/mount_ntfs.orig ] && [ `file /sbin/mount_ntfs.orig | head -n1 | grep -c Mach-O` -eq 1 ]; then
-                mv /sbin/mount_ntfs.orig /sbin/mount_ntfs
+		mv /sbin/mount_ntfs.orig /sbin/mount_ntfs
 		rm -f /sbin/mount_ntfs.osx-dist
-        elif [ -e /sbin/mount_ntfs.osx-dist ]; then
+	elif [ -e /sbin/mount_ntfs.osx-dist ]; then
 		mv /sbin/mount_ntfs.osx-dist /sbin/mount_ntfs
 		rm -f /sbin/mount_ntfs.orig
 	fi
+
+	$out "Ok."
 fi
-echo "Ok."
 
 echo "Uninstalling NTFS-3G... "
 EOF
@@ -288,27 +309,29 @@ EOF
 }
 
 add_switcher_script() {
-        echo -n "Adding switcher script... "
-        SS=$TMPDIR/Switch
-        (cat <<'EOF'
+	echo -n "Adding switcher script... "
+	SS=$TMPDIR/Switch
+	(cat <<'EOF'
 #!/bin/bash
 
 echo "This procedure requires administrative privileges."
 sudo -p "Please enter your password to continue: " -s -- '
 
+out=/bin/echo
 nprobe=`which ntfs-3g.probe`
 ntfsmounts=""
 
 umount_ntfs_volumes() {
-	echo -n " - Unmounting NTFS filesystems... "
-	fusemountlist=`mount | grep fuse4x | awk "{ print \$1 }"`
-	ntfsmountlist=`mount | grep ntfs | awk "{ print \$1 }"`
+	$out -n " - Unmounting NTFS filesystems... "
+	fusemountlist=`mount | egrep "fuse4x|osxfusefs" | awk "{ print \\$1 }"`
+	ntfsmountlist=`mount | grep ntfs | awk "{ print \\$1 }"`
+	ntfsmountpoints=`mount | egrep "fuse4x|osxfusefs|ntfs" | awk "{ print \\$3 }"`
 	for fm in $fusemountlist; do
 		$nprobe --readonly $fm > /dev/null 2>&1
 		if [ $? -eq 0 ]; then
 			diskutil quiet umount force $fm
 			if [ $? -ne 0 ]; then
-				echo "Couldnt unmount NTFS filesystems. Please unmount them manually and try again. Aborting..."
+				$out "Couldnt unmount NTFS filesystems. Please unmount them manually and try again. Aborting..."
 				read -n1
 				exit 1;
 			fi
@@ -319,20 +342,27 @@ umount_ntfs_volumes() {
 		diskutil quiet umount force $fm > /dev/null 2>&1
 		ntfsmounts="$fm $ntfsmounts"
 	done
-	echo "Ok."
+	$out "Ok."
+
+	$out -n " - Removing mountpoints... "
+	for fm in $ntfsmountpoints; do
+		$out -n "$fm, "
+		rm -rf $fm
+	done
+	$out "Ok."
 }
 
 remount_ntfs_volumes() {
-	echo -n " - Remounting NTFS filesystems... "
+	$out -n " - Remounting NTFS filesystems... "
 	for nm in $ntfsmounts; do
 		diskutil quiet mount $nm
 	done
-	echo "Ok."
+	$out "Ok."
 }
 
 if [ "`which ntfs-3g`" = "" ] || [ "$nprobe" = "" ]; then
-	echo "NTFS-3G doesnt seem to be installed!"
-	echo "Aborting... Press any key to exit."
+	$out "NTFS-3G doesnt seem to be installed!"
+	$out "Aborting... Press any key to exit."
 	read -n1
 	exit 1;
 fi
@@ -346,32 +376,38 @@ if [ ! -e /sbin/mount_ntfs.osx-dist ]; then
 fi
 
 if [ -h /sbin/mount_ntfs ]; then
+	ISNTFS3G=`readlink /sbin/mount_ntfs | grep -c "\-3g"`
+else
+	ISNTFS3G=0
+fi
+
+if [ $ISNTFS3G -eq 1 ]; then
 	read -p "Mounting NTFS volumes with NTFS-3G by default seems to be ENABLED. Do you want to DISABLE it? " -n1 switchAnswer
 	echo
 	if [ "$switchAnswer" = "y" ] || [ "$switchAnswer" = "Y" ]; then
 		umount_ntfs_volumes
-		echo -n " - Switching default NTFS handler to * OSX NATIVE * ... "
+		$out -n " - Switching default NTFS handler to * OSX NATIVE * ... "
 		if [ -f /sbin/mount_ntfs.orig ]; then
 			rm -f /sbin/mount_ntfs
 			mv /sbin/mount_ntfs.orig /sbin/mount_ntfs
 		fi
-		echo "Ok."
+		$out "Ok."
 		remount_ntfs_volumes
 	else
-		echo "Aborting... "
+		$out "Aborting... "
 	fi
 else
 	read -p "Mounting NTFS volumes with NTFS-3G by default seems to be DISABLED. Do you want to ENABLE it? " -n1 switchAnswer
 	echo
 	if [ "$switchAnswer" = "y" ] || [ "$switchAnswer" = "Y" ]; then
 		umount_ntfs_volumes
-		echo -n " - Switching default NTFS handler to * NTFS-3G * ... "
+		$out -n " - Switching default NTFS handler to * NTFS-3G * ... "
 		[ -f /sbin/mount_ntfs.orig ] || mv /sbin/mount_ntfs /sbin/mount_ntfs.orig;
 		ln -sf /sbin/mount_ntfs-3g /sbin/mount_ntfs
-		echo "Ok."
+		$out "Ok."
 		remount_ntfs_volumes
 	else
-		echo "Aborting... "
+		$out "Aborting... "
 	fi
 fi
 

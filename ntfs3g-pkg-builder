@@ -15,15 +15,15 @@ prefix                  /usr/local
 	echo "Ok."
 
 	echo -n " - Adding parameters for gettext to be compiled against builtin OSX libs... "
-	sed -i '' '/--without-cvs/i\
+	sed -i '' '/--without-cvs/a\
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --with-libexpat-prefix=/usr \\
 ' $TMPDIR/Portfile.gettext
 
-	sed -i '' '/--without-cvs/i\
+	sed -i '' '/--without-cvs/a\
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --with-libncurses-prefix=/usr \\
 ' $TMPDIR/Portfile.gettext
 
-	sed -i '' '/--without-cvs/i\
+	sed -i '' '/--without-cvs/a\
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --with-libiconv-prefix=/usr \\
 ' $TMPDIR/Portfile.gettext
 	echo "Ok."

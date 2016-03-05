@@ -210,6 +210,13 @@ EOF
 	xattr -w -x com.apple.FinderInfo "00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00" $TMPDIR/pkgroot/sbin
 }
 
+remove_headers() {
+	echo -n "Removing development headers... "
+	rm -f $TMPDIR/pkgroot/usr/local/include/libintl.h
+	rm -rf $TMPDIR/pkgroot/usr/local/include/ntfs-3g
+	echo "Ok."
+}
+
 rebuild_ntfs3g_installpackage() {
 	echo -n "Rebuilding NTFS-3G install package... "
 	NTFSTGPKG=`basename $TMPDIR/pkgs/orig.ntfs-3g-*.pkg`
@@ -427,6 +434,29 @@ EOF
         echo "Ok."
 }
 
+add_readme() {
+	echo -n "Adding README document... "
+	SS=$TMPDIR/README.txt
+	(cat <<'EOF'
+DISCLAIMER: This is unsupported - by installing and using this package you accept you're liable for any damages it may cause to your OSX install and/or NTFS volumes. Of course, it's not supposed to have any major problems whatsoever, but I can't predict with absolute certainty how this will behave on installations other than my own. You've been warned.
+
+In order to use this you will need OSXFuse (http://osxfuse.github.io), so install it first.
+
+Then run the package installer for NTFS-3G to install the filesystem binaries and support libraries.
+
+Once installed, NTFS-3G will _NOT_ be active by default - to activate it, run the "Switcher" script and follow the instructions on screen to switch the default NTFS mounting behavior between OSX Native and NTFS-3G, and vice-versa (if the script is run while NTFS-3G is active).
+
+The Uninstall script should be self-explanatory.
+
+All credits go to Ben Fleischer from OSX Fuse and the guys at Tuxera for NTFS-3G.
+EOF
+) >> $SS
+
+        chmod 0644 $SS
+        mv $SS $TMPDIR/pkgs/
+        echo "Ok."
+}
+
 create_ntfs3g_dmg() {
 	mkdir $TMPDIR/dmg
 	chmod 0755 $TMPDIR/pkgs/*
@@ -463,9 +493,11 @@ build_ntfs3g
 unstage_libintl
 merge_libintl_to_ntfs3g
 add_mountntfs_script
+remove_headers
 rebuild_ntfs3g_installpackage
 add_uninstall_script
 add_switcher_script
+add_readme
 create_ntfs3g_dmg
 
 cd $OLDIR

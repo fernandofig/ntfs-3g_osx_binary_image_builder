@@ -463,6 +463,7 @@ create_ntfs3g_dmg() {
 	cp -a $TMPDIR/pkgs/ntfs-3g-*.pkg $TMPDIR/dmg
 	cp -a $TMPDIR/pkgs/Uninstall $TMPDIR/dmg
 	cp -a $TMPDIR/pkgs/Switch $TMPDIR/dmg
+	cp -a $TMPDIR/pkgs/README.txt $TMPDIR/dmg
 	chown -R $UIDDMG:$GIDDMG $TMPDIR/dmg
 	echo -n "Creating DMG image with NTFS-3G install package and uninstaller... "
 	hdiutil create -fs HFS+ -srcfolder $TMPDIR/dmg/ -copyuid $UIDDMG -anyowners -ov -quiet -volname "NTFS-3G Install" $OLDIR/NTFS-3G.dmg

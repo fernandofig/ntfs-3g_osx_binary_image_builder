@@ -198,7 +198,7 @@ fi
         -o uid=$USER_ID \
         -o gid=$GROUP_ID \
         -o allow_other \
-	-o iosize=33554432 \
+        -o iosize=33554432 \
         "$@" &> /var/log/ntfsmnt.log
 
 exit $?;
@@ -298,7 +298,7 @@ EOF
 	(cat <<'EOF'
 rm -rvf /usr/local/include/ntfs-3g
 rm -rvf /usr/local/share/doc/ntfs-3g
-#pkgutil --forget org.macports.ntfs-3g
+pkgutil --forget org.macports.ntfs-3g > /dev/null 2>&1
 rm -rf /Library/Receipts/ntfs-3g-*.pkg
 '
 

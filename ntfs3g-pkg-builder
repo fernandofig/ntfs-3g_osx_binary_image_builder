@@ -102,12 +102,14 @@ prefix                  /usr/local
 	echo "Ok."
 }
 
-build_ntfs3g() {
-	echo "Building ntfs-3g:"
-
-	echo -n " - Staging libintl into /usr/local so ntfs-3g can be compiled... "
+stage_libintl() {
+	echo -n "Staging libintl into /usr/local so ntfs-3g can be built... "
 	cp -a $TMPDIR/pkgroot/usr/local/* /usr/local
 	echo "Ok."
+}
+
+build_ntfs3g() {
+	echo "Building ntfs-3g:"
 
 	echo -n " - Compiling... "
 	port -q destroot ntfs-3g > /dev/null 2>&1
@@ -126,17 +128,19 @@ build_ntfs3g() {
 	cp -a $PORTSDIR/fuse/ntfs-3g/work/ntfs-3g*.pkg $TMPDIR/pkgs/
 	echo "Ok."
 
-	echo -n " - Removing staged libintl from /usr/local... "
-	libIntlFiles=`find $TMPDIR/pkgroot -not -type d | sed "s/${TMPDIR//\//\\/}\/pkgroot//"`
-	for liarq in $libIntlFiles ; do
-		rm -rf $liarq
-	done
-	echo "Ok."
-
 	echo -n " - Resetting ntfs-3g port to original state... "
 	cat $TMPDIR/Portfile.ntfs-3g.orig > $PORTSDIR/fuse/ntfs-3g/Portfile
 	rm $TMPDIR/Portfile.ntfs-3g*
 	port -q clean ntfs-3g
+	echo "Ok."
+}
+
+unstage_libintl() {
+	echo -n "Removing staged libintl from /usr/local... "
+	libIntlFiles=`find $TMPDIR/pkgroot -not -type d | sed "s/${TMPDIR//\//\\/}\/pkgroot//"`
+	for liarq in $libIntlFiles ; do
+		rm -rf $liarq
+	done
 	echo "Ok."
 }
 
@@ -454,7 +458,9 @@ build_gettext
 strip_gettext
 
 modify_ntfs3g_portbuild
+stage_libintl
 build_ntfs3g
+unstage_libintl
 merge_libintl_to_ntfs3g
 add_mountntfs_script
 rebuild_ntfs3g_installpackage

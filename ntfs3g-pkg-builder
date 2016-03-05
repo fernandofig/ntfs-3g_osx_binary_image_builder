@@ -125,7 +125,8 @@ build_ntfs3g() {
 	echo "Ok."
 
 	echo -n " - Copying ntfs-3g install package to work dir... "
-	cp -a $PORTSDIR/fuse/ntfs-3g/work/ntfs-3g*.pkg $TMPDIR/pkgs/
+	NTFSTGPKG=`basename $PORTSDIR/fuse/ntfs-3g/work/ntfs-3g*.pkg`
+	cp -a $PORTSDIR/fuse/ntfs-3g/work/$NTFSTGPKG $TMPDIR/pkgs/orig.$NTFSTGPKG
 	echo "Ok."
 
 	echo -n " - Resetting ntfs-3g port to original state... "
@@ -146,7 +147,7 @@ unstage_libintl() {
 
 merge_libintl_to_ntfs3g() {
 	echo -n "Merging libintl to NTFS-3G dist files... "
-	NTFSTGPKG=`basename $TMPDIR/pkgs/ntfs-3g-*.pkg`
+	NTFSTGPKG=`basename $TMPDIR/pkgs/orig.ntfs-3g-*.pkg`
 	cd $TMPDIR/pkgroot
 	pax -r -pe -zf $TMPDIR/pkgs/$NTFSTGPKG/Contents/Archive.pax.gz
 	chown -R 0:0 $TMPDIR/pkgroot/usr
@@ -211,12 +212,11 @@ EOF
 
 rebuild_ntfs3g_installpackage() {
 	echo -n "Rebuilding NTFS-3G install package... "
-	cd $TMPDIR/pkgroot
-	mkbom $TMPDIR/pkgroot/ $TMPDIR/Archive.bom
-	pax -w -zf $TMPDIR/Archive.pax.gz .
-	cat $TMPDIR/Archive.pax.gz > $TMPDIR/pkgs/$NTFSTGPKG/Contents/Archive.pax.gz
-	cat $TMPDIR/Archive.bom > $TMPDIR/pkgs/$NTFSTGPKG/Contents/Archive.bom
-	rm -rf $TMPDIR/Archive.*
+	NTFSTGPKG=`basename $TMPDIR/pkgs/orig.ntfs-3g-*.pkg`
+	NTFSTGPKGVERSION=`port info ntfs-3g | head -n1 | sed 's/.*@//' | sed 's/\([0-9\.]*\).*/\1/'`
+
+	pkgbuild --quiet --prior $TMPDIR/pkgs/$NTFSTGPKG --root $TMPDIR/pkgroot/ $TMPDIR/pkgs/ntfs-3g-$NTFSTGPKGVERSION.pkg
+
 	echo "Ok."
 }
 

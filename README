@@ -1,3 +1,8 @@
-This shell script will automate through the steps necessary to build a fully working NTFS-3G Install image for OSX, compiled against Fuse4X (fuse4x.github.io - you should install it before compiling the binary image). Although the binary image, once built, works by itself without any other dependencies besides Fuse4X, a working install of MacPorts (along with MacPorts own requirements, like e.g. XCode) is required to build it.
+This shell script will automate through the steps necessary to build a fully working NTFS-3G Install image for OSX, compiled against Fuse4X (fuse4x.github.io) or OSXFuse (osxfuse.github.io). You'll need to install either of those (but not both) in order to use this script:
+ 
+ - Fuse4X is deprecated and no longer maintained, although as of OSX 10.11, it still works.
+ - OSXFuse is in active development, but only version 3.2.0 (which at the time of this writing is a developer preview) onwards will work correctly with NTFS-3G.
 
-This binary image was tested and found to be working on OSX Mavericks. Feedback is welcome for earlier versions of OSX.
+ Although the binary image, once built, works by itself without any other dependencies besides Fuse4X or OSXFuse, a working install of MacPorts (along with MacPorts own requirements, like e.g. XCode) is required to build it.
+
+This binary image was tested and found to be working on OSX El Capitan. Feedback is welcome for earlier versions of OSX.

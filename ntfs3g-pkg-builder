@@ -244,9 +244,9 @@ out=/bin/echo
 nprobe=`which ntfs-3g.probe`
 
 $out -n "Unmounting NTFS filesystems... "
-fusemountlist=`mount | egrep "fuse4x|osxfusefs" | awk "{ print \\$1 }"`
+fusemountlist=`mount | egrep "fuse4x|osxfuse" | awk "{ print \\$1 }"`
 ntfsmountlist=`mount | grep ntfs | awk "{ print \\$1 }"`
-ntfsmountpoints=`mount | egrep "fuse4x|osxfusefs|ntfs" | awk "{ print \\$3 }"`
+ntfsmountpoints=`mount | egrep "fuse4x|osxfuse|ntfs" | awk "{ print \\$3 }"`
 for fm in $fusemountlist; do
 	[ "$nprobe" = "" ] && true || $nprobe --readonly $fm > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
@@ -256,12 +256,10 @@ for fm in $fusemountlist; do
 			read -n1
 			exit 1;
 		fi
-		ntfsmounts="$fm $ntfsmounts"
 	fi
 done
 for fm in $ntfsmountlist; do
 	diskutil quiet umount force $fm > /dev/null 2>&1
-	ntfsmounts="$fm $ntfsmounts"
 done
 $out "Ok."
 
@@ -334,9 +332,9 @@ ntfsmounts=""
 
 umount_ntfs_volumes() {
 	$out -n " - Unmounting NTFS filesystems... "
-	fusemountlist=`mount | egrep "fuse4x|osxfusefs" | awk "{ print \\$1 }"`
+	fusemountlist=`mount | egrep "fuse4x|osxfuse" | awk "{ print \\$1 }"`
 	ntfsmountlist=`mount | grep ntfs | awk "{ print \\$1 }"`
-	ntfsmountpoints=`mount | egrep "fuse4x|osxfusefs|ntfs" | awk "{ print \\$3 }"`
+	ntfsmountpoints=`mount | egrep "fuse4x|osxfuse|ntfs" | awk "{ print \\$3 }"`
 	for fm in $fusemountlist; do
 		$nprobe --readonly $fm > /dev/null 2>&1
 		if [ $? -eq 0 ]; then

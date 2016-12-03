@@ -238,7 +238,7 @@ add_uninstall_script() {
 # really is installed (hence, ntfs-3g.probe would also be) we unmount all Fuse4x/OSXFuse
 # filesystems... :P
 
-sudo -p "Please enter your password to uninstall NTFS-3G: " -s -- '
+sudo -p "Please enter your password to uninstall NTFS-3G: " /bin/bash -c '
 
 out=/bin/echo
 nprobe=`which ntfs-3g.probe`
@@ -324,7 +324,7 @@ add_switcher_script() {
 #!/bin/bash
 
 echo "This procedure requires administrative privileges."
-sudo -p "Please enter your password to continue: " -s -- '
+sudo -p "Please enter your password to continue: " /bin/bash -c '
 
 out=/bin/echo
 nprobe=`which ntfs-3g.probe`

@@ -75,9 +75,12 @@ build_gettext() {
 
 strip_gettext() {
 	echo -n "Removing binaries and libraries not used by NTFS-3G from gettext install... "
-	GETTEXTPKG=`basename $TMPDIR/pkgs/gettext-*.pkg`
+	GETTEXTPKG=`basename $TMPDIR/pkgs/gettext-*-component.pkg`
+	GETTEXTTMPDIR=${GETTEXTPKG%.*}
+	pkgutil --expand $TMPDIR/pkgs/gettext-*-component.pkg $TMPDIR/pkgs/$GETTEXTTMPDIR
+	tar -xf $TMPDIR/pkgs/$GETTEXTTMPDIR/Payload -C $TMPDIR/pkgroot/
+	rm -rf $TMPDIR/pkgs/$GETTEXTTMPDIR
 	cd $TMPDIR/pkgroot
-	pax -r -pe -zf $TMPDIR/pkgs/$GETTEXTPKG/Contents/Archive.pax.gz
 	rm -rf $TMPDIR/pkgroot/usr/local/bin
 	rm -rf $TMPDIR/pkgroot/usr/local/share
 	rm -rf $TMPDIR/pkgroot/usr/local/include/autosprintf.h $TMPDIR/pkgroot/usr/local/include/gettext-po.h
@@ -147,9 +150,12 @@ unstage_libintl() {
 
 merge_libintl_to_ntfs3g() {
 	echo -n "Merging libintl to NTFS-3G dist files... "
-	NTFSTGPKG=`basename $TMPDIR/pkgs/orig.ntfs-3g-*.pkg`
+	NTFSTGPKG=`basename $TMPDIR/pkgs/orig.ntfs-3g-*-component.pkg`
+	NTFSTGTMPDIR=${NTFSTGPKG%.*}
+	pkgutil --expand $TMPDIR/pkgs/orig.ntfs-3g-*-component.pkg $TMPDIR/pkgs/$NTFSTGTMPDIR
+	tar -xf $TMPDIR/pkgs/$NTFSTGTMPDIR/Payload -C $TMPDIR/pkgroot/
+	rm -rf $TMPDIR/pkgs/$NTFSTGTMPDIR
 	cd $TMPDIR/pkgroot
-	pax -r -pe -zf $TMPDIR/pkgs/$NTFSTGPKG/Contents/Archive.pax.gz
 	chown -R 0:0 $TMPDIR/pkgroot/usr
 	echo "Ok."
 }
